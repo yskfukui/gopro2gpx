@@ -33,7 +33,7 @@ def map_type(type):
 
 
 XYZData = collections.namedtuple('XYZData',"y x z")
-QUATData = collections.namedtuple('QUATData',"y x z w")
+QUATData = collections.namedtuple('QUATData',"y x z w") # not sure about the order
 UNITData = collections.namedtuple("UNITData","lat lon alt speed speed3d")
 KARMAUNIT10Data = collections.namedtuple("KARMAUNIT10Data","A  Ah J degC V1 V2 V3 V4 s p1")
 KARMAUNIT15Data = collections.namedtuple("KARMAUNIT15Data","A  Ah J degC V1 V2 V3 V4 s p1 e1 e2 e3 e4 p2")

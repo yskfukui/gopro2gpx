@@ -57,7 +57,6 @@ def GetGRAVData(data):
             SCAL = d.data  # get scaling factor expected to be 32767
         if d.fourCC == "GRAV":
             for item in d.data:
-                print(d.data)
                 scaled_data = [x / float(SCAL) for x in item._asdict().values()]
                 all_grav_data.append(scaled_data)
     
