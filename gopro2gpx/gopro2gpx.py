@@ -19,6 +19,7 @@ import sys
 import time
 from collections import namedtuple
 import datetime
+import csv
 
 from .config import setup_environment
 from .ffmpegtools import FFMpegTools
@@ -26,6 +27,28 @@ from . import fourCC
 from . import gpmf
 from . import gpshelper
 
+def write_csv(data,outputfname:str):
+
+    with open(outputfname,'w',newline='') as csvfile:
+        writer = csv.writer(csvfile, delimiter=',')
+        for xyz in data:
+            writer.writerow(xyz)
+
+
+def GetGRAVData(data):
+    SCAL = 1.0  # default: no scaling
+
+    all_grav_data = []
+    for d in data:
+        if d.fourCC == "SCAL":
+            SCAL = d.data  # get scaling factor expected to be 32767
+        if d.fourCC == "GRAV":
+            for item in d.data:
+ 
+                scaled_data = [x / float(SCAL) for x in item._asdict().values()]
+                all_grav_data.append(scaled_data)
+    
+    return all_grav_data
 
 def BuildGPSPoints(data, skip=False):
     """
@@ -152,6 +175,7 @@ def parseArgs():
     parser.add_argument("-v", "--verbose", help="increase output verbosity", action="count")
     parser.add_argument("-b", "--binary", help="read data from bin file", action="store_true")
     parser.add_argument("-s", "--skip", help="Skip bad points (GPSFIX=0)", action="store_true", default=False)
+    parser.add_argument("-t", "--type", help="Type of FourCC (GRAV, CORI)", default=None)
     parser.add_argument("files", help="Video file or binary metadata dump", nargs='*')
     parser.add_argument("outputfile", help="output file. builds KML and GPX")
     args = parser.parse_args()
@@ -162,6 +186,7 @@ def main_core(args):
     config = setup_environment(args)
     files = args.files
     output_file = args.outputfile
+    fourcc_type = args.type
     points = []
     start_time = None
     ffmpegtools = FFMpegTools(ffprobe=config.ffprobe_cmd, ffmpeg=config.ffmpeg_cmd)
@@ -180,26 +205,29 @@ def main_core(args):
             f = open(binary_filename, "wb")
             f.write(raw_data)
             f.close()
-
         data += gpmf.parseStream(raw_data, config.verbose)
+        
+    if fourcc_type == "GRAV":
+        grav_data = GetGRAVData(data)
+        write_csv(grav_data,output_file)
+    else:
+        points, start_time, device_name = BuildGPSPoints(data, skip=args.skip)
 
-    points, start_time, device_name = BuildGPSPoints(data, skip=args.skip)
+        if len(points) == 0:
+            print("Can't create file. No GPS info in %s. Exitting" % args.files)
+            sys.exit(0)
 
-    if len(points) == 0:
-        print("Can't create file. No GPS info in %s. Exitting" % args.files)
-        sys.exit(0)
+        kml = gpshelper.generate_KML(points)
+        with open("%s.kml" % args.outputfile , "w+") as fd:
+            fd.write(kml)
 
-    kml = gpshelper.generate_KML(points)
-    with open("%s.kml" % args.outputfile , "w+") as fd:
-        fd.write(kml)
+        #csv = gpshelper.generate_CSV(points)
+        #with open("%s.csv" % args.outputfile , "w+") as fd:
+        #    fd.write(csv)
 
-    #csv = gpshelper.generate_CSV(points)
-    #with open("%s.csv" % args.outputfile , "w+") as fd:
-    #    fd.write(csv)
-
-    gpx = gpshelper.generate_GPX(points, start_time, trk_name=device_name)
-    with open("%s.gpx" % args.outputfile , "w+") as fd:
-        fd.write(gpx)
+        gpx = gpshelper.generate_GPX(points, start_time, trk_name=device_name)
+        with open("%s.gpx" % args.outputfile , "w+") as fd:
+            fd.write(gpx)
 
 def main():
     args = parseArgs()
