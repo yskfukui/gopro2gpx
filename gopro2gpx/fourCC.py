@@ -142,6 +142,27 @@ class LabelACCL(LabelXYZData):
 	def __init__(self):
 		LabelXYZData.__init__(self)
 
+class LabelGRAV(LabelBase):
+    def __init__(self):
+        LabelBase.__init__(self)
+
+    def Build(self, klvdata):
+        if klvdata.size != 6 and klvdata.size != 12:
+            raise Exception("Invalid length for ACCL packet")
+
+        # we need to process the SCAL value to measure properly the DATA
+        stype = map_type(klvdata.type)
+        data = []
+        for r in range(klvdata.repeat):
+            stype = map_type(klvdata.type)
+            s = struct.Struct(">" + stype * 3)
+
+            # Decode (x,y,z) at 2B each, 6B total
+            data_item = XYZData._make(
+                s.unpack_from(klvdata.rawdata[r * 2 * 3 : (r + 1) * 2 * 3])
+            )
+            data.append(data_item)
+        return data
 class LabelGYRO(LabelXYZData):
 	"""
 	3-axis gyroscope 3200Hz, rad/s
@@ -383,7 +404,7 @@ labels = {
 		# gopro MAX  fix
 		"CORI": LabelEmpty,  # Camera ORIentation
 		"IORI": LabelEmpty,  # Image ORIentation
-		"GRAV": LabelEmpty,  # GRAvity Vector
+		"GRAV": LabelGRAV,  # GRAvity Vector
 		"DISP": LabelEmpty,  # Disparity track (360 modes)
 
 		# gopro 11

@@ -23,3 +23,7 @@ share/python-wheels/
 MANIFEST
 samples/*.mp4
 test/parse.py
+*.bin
+*.gpx
+*.kml
+*.csv
