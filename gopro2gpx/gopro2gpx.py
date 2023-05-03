@@ -34,6 +34,19 @@ def write_csv(data,outputfname:str):
         for xyz in data:
             writer.writerow(xyz)
 
+def GetCORIData(data):
+    SCAL = 1.0  # default: no scaling
+
+    all_cori_data = []
+    for d in data:
+        if d.fourCC == "SCAL":
+            SCAL = d.data  # get scaling factor expected to be 32767
+        if d.fourCC == "CORI":
+            for item in d.data:
+                scaled_data = [x / float(SCAL) for x in item._asdict().values()]
+                all_cori_data.append(scaled_data)
+    
+    return all_cori_data
 
 def GetGRAVData(data):
     SCAL = 1.0  # default: no scaling
@@ -44,7 +57,6 @@ def GetGRAVData(data):
             SCAL = d.data  # get scaling factor expected to be 32767
         if d.fourCC == "GRAV":
             for item in d.data:
- 
                 scaled_data = [x / float(SCAL) for x in item._asdict().values()]
                 all_grav_data.append(scaled_data)
     
@@ -210,6 +222,9 @@ def main_core(args):
     if fourcc_type == "GRAV":
         grav_data = GetGRAVData(data)
         write_csv(grav_data,output_file)
+    elif fourcc_type == "CORI":
+        cori_data = GetCORIData(data)
+        write_csv(cori_data,output_file)
     else:
         points, start_time, device_name = BuildGPSPoints(data, skip=args.skip)
 
