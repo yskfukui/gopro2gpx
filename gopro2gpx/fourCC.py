@@ -32,7 +32,8 @@ def map_type(type):
 	return(ctype)
 
 
-XYZData = collections.namedtuple('XYZData',"y x z")	
+XYZData = collections.namedtuple('XYZData',"y x z")
+QUATData = collections.namedtuple('QUATData',"y x z w")
 UNITData = collections.namedtuple("UNITData","lat lon alt speed speed3d")
 KARMAUNIT10Data = collections.namedtuple("KARMAUNIT10Data","A  Ah J degC V1 V2 V3 V4 s p1")
 KARMAUNIT15Data = collections.namedtuple("KARMAUNIT15Data","A  Ah J degC V1 V2 V3 V4 s p1 e1 e2 e3 e4 p2")
@@ -163,6 +164,28 @@ class LabelGRAV(LabelBase):
             )
             data.append(data_item)
         return data
+class LabelCORI(LabelBase):
+    def __init__(self):
+        LabelBase.__init__(self)
+
+    def Build(self, klvdata):
+        if klvdata.size != 8 and klvdata.size != 16:
+            raise Exception("Invalid length for ACCL packet")
+
+        # we need to process the SCAL value to measure properly the DATA
+        stype = map_type(klvdata.type)
+        data = []
+        for r in range(klvdata.repeat):
+            stype = map_type(klvdata.type)
+            s = struct.Struct(">" + stype * 4)
+
+            # Decode (x,y,z,w) at 2B each, 8B total
+            data_item = QUATData._make(
+                s.unpack_from(klvdata.rawdata[r * 2 * 4 : (r + 1) * 2 * 4])
+            )
+            data.append(data_item)
+        return data
+      
 class LabelGYRO(LabelXYZData):
 	"""
 	3-axis gyroscope 3200Hz, rad/s
@@ -402,7 +425,7 @@ labels = {
 		"FSKP" : LabelEmpty,
 
 		# gopro MAX  fix
-		"CORI": LabelEmpty,  # Camera ORIentation
+		"CORI": LabelCORI,  # Camera ORIentation
 		"IORI": LabelEmpty,  # Image ORIentation
 		"GRAV": LabelGRAV,  # GRAvity Vector
 		"DISP": LabelEmpty,  # Disparity track (360 modes)
