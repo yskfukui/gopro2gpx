@@ -1,3 +1,8 @@
+# The example of the command to output cori to csv
+```
+python -m gopro2gpx.gopro2gpx ./samples/tmp.bin cori.csv -t CORI -b
+```
+
 # Updates
 
 * Added support for 18Hz resolution in `GPS5` fourCC, to fix (#PR23,#PR17)[https://github.com/juanmcasillas/gopro2gpx/pull/24]. Thanks to (JimmyS83)[https://github.com/JimmyS83] for spot the problem.
